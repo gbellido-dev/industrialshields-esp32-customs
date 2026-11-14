@@ -13,7 +13,7 @@
 set -euo pipefail
 
 BASE_VERSION="2.7.1"
-CUSTOMS="1"   # sube con cada release de los arreglos (y INDUSTRIALSHIELDS_ESP32_CUSTOMS en 0001)
+CUSTOMS="2"   # sube con cada release de los arreglos (y INDUSTRIALSHIELDS_ESP32_CUSTOMS en 0001)
 ORIGINAL_URL="https://apps.industrialshields.com/main/arduino/boards/industrialshields-boards-esp32-${BASE_VERSION}.tar.bz2"
 ORIGINAL_SHA256="da808ea908c24243c212d6aa691633d001ce6d7802d00580667a2c123ab37e2a"
 

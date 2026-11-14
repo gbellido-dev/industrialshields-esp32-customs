@@ -20,14 +20,14 @@ En el `platformio.ini`, sustituir el paquete del núcleo por el de la release:
 ```ini
 platform = https://github.com/Industrial-Shields/platform-industrialshields-esp32.git#v1.1.0
 platform_packages =
-  framework-industrialshields-esp32@https://github.com/gbellido-dev/industrialshields-esp32-customs/releases/download/v2.7.1-customs.1/framework-industrialshields-esp32-2.7.1-customs.1.tar.gz
+  framework-industrialshields-esp32@https://github.com/gbellido-dev/industrialshields-esp32-customs/releases/download/v2.7.1-customs.2/framework-industrialshields-esp32-2.7.1-customs.2.tar.gz
 ```
 
 El código puede comprobar que usa este núcleo:
 
 ```cpp
-#if defined(INDUSTRIALSHIELDS_ESP32_CUSTOMS) && INDUSTRIALSHIELDS_ESP32_CUSTOMS >= 1
-// arreglos de la release 1 disponibles
+#if defined(INDUSTRIALSHIELDS_ESP32_CUSTOMS) && INDUSTRIALSHIELDS_ESP32_CUSTOMS >= 2
+// arreglos de la release 2 disponibles
 #endif
 ```
 

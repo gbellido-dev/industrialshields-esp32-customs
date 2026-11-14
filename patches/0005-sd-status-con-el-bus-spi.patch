@@ -1,0 +1,28 @@
+--- a/libraries/SD/src/sd_diskio.cpp
++++ b/libraries/SD/src/sd_diskio.cpp
+@@ -616,6 +616,13 @@
+ 
+ DSTATUS ff_sd_status(uint8_t pdrv)
+ {
++    // industrialshields-esp32-customs: tomar el bus SPI como ff_sd_read() y
++    // ff_sd_write(). Sin esto, sdTransaction() selecciona la tarjeta y le
++    // habla por SPI sin el mutex del bus; FatFs llama a disk_status() antes de
++    // cada escritura y, si coincide con otro chip del mismo bus (en el ESP32
++    // PLC, el SC16IS752 del modem), quedan dos chips seleccionados: el modem
++    // recibia cientos de 0xFF y no llegaba a registrarse.
++    AcquireSPI lock(s_cards[pdrv]);
+     if(sdTransaction(pdrv, SEND_STATUS, 0, NULL))
+     {
+         log_e("Check status failed");
+@@ -709,7 +716,10 @@
+     if (pdrv >= FF_VOLUMES || card == NULL) {
+         return 1;
+     }
+-    sdTransaction(pdrv, GO_IDLE_STATE, 0, NULL);
++    {
++        AcquireSPI lock(card);  // industrialshields-esp32-customs: ver ff_sd_status()
++        sdTransaction(pdrv, GO_IDLE_STATE, 0, NULL);
++    }
+     ff_diskio_register(pdrv, NULL);
+     s_cards[pdrv] = NULL;
+     esp_err_t err = ESP_OK;

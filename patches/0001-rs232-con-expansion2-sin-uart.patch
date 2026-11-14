@@ -6,7 +6,7 @@
  
 +// Nucleo con los arreglos de github.com/gbellido-dev/industrialshields-esp32-customs
 +// (no oficial). El valor sube con cada release de los arreglos.
-+#define INDUSTRIALSHIELDS_ESP32_CUSTOMS 1
++#define INDUSTRIALSHIELDS_ESP32_CUSTOMS 2
 +
  #if defined(ESP32PLC_21) || defined(ESP32PLC_42) || defined(ESP32PLC_58) || \
      defined(ESP32PLC_38AR) || defined(ESP32PLC_53ARR) || \
