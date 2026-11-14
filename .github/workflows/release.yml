@@ -1,5 +1,7 @@
-# Al subir una etiqueta v<version>-customs.<N> (p. ej. v2.7.1-customs.1):
-# construye el paquete con scripts/build.sh y lo publica como release.
+# Construye el paquete con scripts/build.sh y lo publica como release.
+#  - Al subir una etiqueta v<version>-customs.<N> (p. ej. v2.7.1-customs.1).
+#  - O a mano (Actions -> release -> Run workflow), indicando la etiqueta:
+#    la crea sobre el commit elegido.
 name: release
 
 on:
@@ -7,6 +9,10 @@ on:
     tags:
       - "v*-customs.*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Etiqueta de la release (p. ej. v2.7.1-customs.1)"
+        required: true
 
 permissions:
   contents: write
@@ -14,17 +20,29 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Comprobar la etiqueta
+        run: |
+          case "$TAG" in
+            v*-customs.*) ;;
+            *) echo "La etiqueta debe ser v<version>-customs.<N>: $TAG"; exit 1 ;;
+          esac
+          # Debe coincidir con BASE_VERSION y CUSTOMS de scripts/build.sh
+          want="v$(sed -n 's/^BASE_VERSION="\(.*\)"/\1/p' scripts/build.sh)-customs.$(sed -n 's/^CUSTOMS="\([0-9]*\)".*/\1/p' scripts/build.sh)"
+          [ "$TAG" = "$want" ] || { echo "La etiqueta $TAG no coincide con scripts/build.sh ($want)"; exit 1; }
 
       - name: Construir el paquete
         run: scripts/build.sh
 
       - name: Publicar la release
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.tar.bz2 dist/SHA256SUMS \
-            --title "$GITHUB_REF_NAME" \
+          gh release create "$TAG" dist/*.tar.bz2 dist/SHA256SUMS \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
             --notes-file CHANGELOG.md
