@@ -42,7 +42,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$TAG" dist/*.tar.bz2 dist/SHA256SUMS \
-            --target "$GITHUB_SHA" \
-            --title "$TAG" \
-            --notes-file CHANGELOG.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Ya existe: sustituir los ficheros (y quitar los de otro formato)
+            gh release upload "$TAG" dist/*.tar.gz dist/SHA256SUMS --clobber
+            for a in $(gh release view "$TAG" --json assets --jq '.assets[].name' | grep '\.tar\.bz2$' || true); do
+              gh release delete-asset "$TAG" "$a" --yes
+            done
+            gh release edit "$TAG" --notes-file CHANGELOG.md
+          else
+            gh release create "$TAG" dist/*.tar.gz dist/SHA256SUMS \
+              --target "$GITHUB_SHA" \
+              --title "$TAG" \
+              --notes-file CHANGELOG.md
+          fi

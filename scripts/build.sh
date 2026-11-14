@@ -6,7 +6,9 @@
 #   ORIGINAL=ruta.tar.bz2 scripts/build.sh   usa un original ya descargado
 #
 # Sale en dist/:
-#   framework-industrialshields-esp32-<BASE>-customs.<N>.tar.bz2
+#   framework-industrialshields-esp32-<BASE>-customs.<N>.tar.gz
+# (.tar.gz y no .tar.bz2: PlatformIO toma como repositorio git cualquier URL
+# de github.com que no acabe en .zip, .tar.gz o .tar.xz)
 #   SHA256SUMS
 set -euo pipefail
 
@@ -52,6 +54,6 @@ PY
 cp "$ROOT/README.md" "$WORK/esp32/CUSTOMS.md"
 
 mkdir -p "$ROOT/dist"
-echo "Empaquetando $NAME.tar.bz2"
-tar cjf "$ROOT/dist/$NAME.tar.bz2" -C "$WORK" esp32
-(cd "$ROOT/dist" && sha256sum "$NAME.tar.bz2" > SHA256SUMS && cat SHA256SUMS)
+echo "Empaquetando $NAME.tar.gz"
+tar czf "$ROOT/dist/$NAME.tar.gz" -C "$WORK" esp32
+(cd "$ROOT/dist" && sha256sum "$NAME.tar.gz" > SHA256SUMS && cat SHA256SUMS)
