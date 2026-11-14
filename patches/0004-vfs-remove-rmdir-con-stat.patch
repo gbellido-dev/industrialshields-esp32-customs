@@ -1,0 +1,72 @@
+--- a/libraries/FS/src/vfs_api.cpp
++++ b/libraries/FS/src/vfs_api.cpp
+@@ -13,6 +13,7 @@
+ // limitations under the License.
+ 
+ #include "vfs_api.h"
++#include <sys/stat.h>
+ 
+ using namespace fs;
+ 
+@@ -167,22 +168,21 @@
+         return false;
+     }
+ 
+-    VFSFileImpl f(this, fpath, "r");
+-    if(!f || f.isDirectory()) {
+-        if(f) {
+-            f.close();
+-        }
+-        log_e("%s does not exists or is directory", fpath);
+-        return false;
+-    }
+-    f.close();
+-
++    // industrialshields-esp32-customs: stat() en vez de abrir el fichero.
++    // Abrirlo necesita un descriptor libre y, con todos los del montaje en
++    // uso (max_files), remove() fallaba siempre.
+     char * temp = (char *)malloc(strlen(fpath)+strlen(_mountpoint)+1);
+     if(!temp) {
+         log_e("malloc failed");
+         return false;
+     }
+     sprintf(temp,"%s%s", _mountpoint, fpath);
++    struct stat st;
++    if(stat(temp, &st) != 0 || S_ISDIR(st.st_mode)) {
++        free(temp);
++        log_e("%s does not exists or is directory", fpath);
++        return false;
++    }
+     auto rc = unlink(temp);
+     free(temp);
+     return rc == 0;
+@@ -229,22 +229,19 @@
+         return false;
+     }
+ 
+-    VFSFileImpl f(this, fpath, "r");
+-    if(!f || !f.isDirectory()) {
+-        if(f) {
+-            f.close();
+-        }
+-        log_e("%s does not exists or is a file", fpath);
+-        return false;
+-    }
+-    f.close();
+-
++    // industrialshields-esp32-customs: stat() en vez de abrir (ver remove()).
+     char * temp = (char *)malloc(strlen(fpath)+strlen(_mountpoint)+1);
+     if(!temp) {
+         log_e("malloc failed");
+         return false;
+     }
+     sprintf(temp,"%s%s", _mountpoint, fpath);
++    struct stat st;
++    if(stat(temp, &st) != 0 || !S_ISDIR(st.st_mode)) {
++        free(temp);
++        log_e("%s does not exists or is a file", fpath);
++        return false;
++    }
+     auto rc = ::rmdir(temp);
+     free(temp);
+     return rc == 0;

@@ -1,0 +1,30 @@
+# Al subir una etiqueta v<version>-customs.<N> (p. ej. v2.7.1-customs.1):
+# construye el paquete con scripts/build.sh y lo publica como release.
+name: release
+
+on:
+  push:
+    tags:
+      - "v*-customs.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir el paquete
+        run: scripts/build.sh
+
+      - name: Publicar la release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.tar.bz2 dist/SHA256SUMS \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file CHANGELOG.md

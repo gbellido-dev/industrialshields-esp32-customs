@@ -1,0 +1,35 @@
+--- a/variants/esp32plc/pins_is.h
++++ b/variants/esp32plc/pins_is.h
+@@ -1,6 +1,10 @@
+ #ifndef __pins_is_H__
+ #define __pins_is_H__
+ 
++// Nucleo con los arreglos de github.com/gbellido-dev/industrialshields-esp32-customs
++// (no oficial). El valor sube con cada release de los arreglos.
++#define INDUSTRIALSHIELDS_ESP32_CUSTOMS 1
++
+ #if defined(ESP32PLC_21) || defined(ESP32PLC_42) || defined(ESP32PLC_58) || \
+     defined(ESP32PLC_38AR) || defined(ESP32PLC_53ARR) || \
+     defined(ESP32PLC_57AAR) || defined(ESP32PLC_54ARA)
+@@ -335,7 +339,11 @@
+ #define SERIAL_SC_0_1_IRQ                               (14)
+ #endif // defined(ESP32PLC_V3)
+ 
+-#if !defined(EXPANSION_MODULE2)
++// industrialshields-esp32-customs: el RS-232 y Serial2 (SerialSC0) solo se
++// pierden si la expansion 2 usa ese UART (GPRS, NB, LTE). Antes bastaba con
++// cualquier expansion 2, aunque fuera el CAN, que va por SPI.
++#if !defined(EXPANSION_MODULE2_GPRS) && !defined(EXPANSION_MODULE2_NB) && \
++    !defined(EXPANSION_MODULE2_LTE)
+ 
+ // RS-232
+ #if defined(ESP32PLC_V3)
+@@ -350,7 +358,7 @@
+ // Serial 2 (UART2)
+ #define Serial2                                         (SerialSC0)
+ 
+-#endif // !defined(EXPANSION_MODULE2)
++#endif // expansion 2 sin UART
+ 
+ 
+ // Basic expansion module variables

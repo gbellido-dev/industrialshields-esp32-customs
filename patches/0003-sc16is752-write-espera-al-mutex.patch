@@ -1,0 +1,23 @@
+--- a/cores/industrialshields/SC16IS752.cpp
++++ b/cores/industrialshields/SC16IS752.cpp
+@@ -16,6 +16,11 @@
+ #define SPI_SPEED                       (SPI_CLOCK_DIV4)
+ 
+ #define DEFAULT_TICKS_TO_WAIT_FOR_LOCK  (0)
++// industrialshields-esp32-customs: write() esperaba 0 ticks y, si el mutex del
++// chip estaba ocupado (p. ej. por la tarea de interrupcion vaciando la FIFO),
++// devolvia 0 sin escribir. La libreria NB no comprueba lo escrito y el
++// comando AT se perdia. Ahora espera hasta 20 ms.
++#define WRITE_TICKS_TO_WAIT_FOR_LOCK    (pdMS_TO_TICKS(20))
+ #define ISR_TASK_MAX_PRIORITY           (5)
+ 
+ 
+@@ -352,7 +357,7 @@
+ size_t SC16IS752HardwareSerial::write(const uint8_t* buf, size_t len) {
+ 	size_t writtenBytes = 0;
+ 
+-	if (parent_chip.lock(DEFAULT_TICKS_TO_WAIT_FOR_LOCK) != 0) {
++	if (parent_chip.lock(WRITE_TICKS_TO_WAIT_FOR_LOCK) != 0) {
+ 		return 0;
+ 	}
+ 

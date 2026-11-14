@@ -1,0 +1,92 @@
+--- a/cores/industrialshields/plc-peripherals/src/peripheral-mcp23008.c
++++ b/cores/industrialshields/plc-peripherals/src/peripheral-mcp23008.c
+@@ -62,6 +62,40 @@
+  *             - For Linux:
+  *                 - Other errors that "ioctl" may return.
+  */
++/*
++ * industrialshields-esp32-customs: mcp23008_write() y mcp23008_set_pin_mode()
++ * leen un registro, cambian un bit y lo reescriben. Sin exclusion, dos tareas
++ * (por ejemplo una en cada nucleo del ESP32) pueden pisarse: una sobrescribe
++ * el bit que acaba de cambiar la otra. En el ESP32 PLC 21 el reset del
++ * MCP2515 y el encendido/reset del modem estan en el mismo expansor, y el
++ * modem quedaba apagado o en reset.
++ */
++#if defined(PLC_ENVIRONMENT) && PLC_ENVIRONMENT == Arduino_ESP32
++#include "freertos/FreeRTOS.h"
++#include "freertos/semphr.h"
++static StaticSemaphore_t rmw_mutex_buffer;
++static SemaphoreHandle_t rmw_mutex = NULL;
++static portMUX_TYPE rmw_mutex_init = portMUX_INITIALIZER_UNLOCKED;
++
++static void rmw_lock(void) {
++	if (rmw_mutex == NULL) {
++		portENTER_CRITICAL(&rmw_mutex_init);
++		if (rmw_mutex == NULL) {
++			rmw_mutex = xSemaphoreCreateRecursiveMutexStatic(&rmw_mutex_buffer);
++		}
++		portEXIT_CRITICAL(&rmw_mutex_init);
++	}
++	xSemaphoreTakeRecursive(rmw_mutex, portMAX_DELAY);
++}
++
++static void rmw_unlock(void) {
++	xSemaphoreGiveRecursive(rmw_mutex);
++}
++#else
++static void rmw_lock(void) {}
++static void rmw_unlock(void) {}
++#endif
++
+ static inline int write_reg(i2c_interface_t* i2c, uint8_t addr, uint8_t reg, uint8_t value) {
+ 	FAST_CREATE_I2C_WRITE(read_order_reg, reg, value);
+ 	return i2c_write(i2c, addr, &read_order_reg);
+@@ -218,8 +252,10 @@
+ 	uint8_t iodir;
+ 	i2c_read_t read_iodir_reg = {.buff=&iodir, .len=1};
+ 
++	rmw_lock();
+ 	int i2c_ret = i2c_write_then_read(i2c, addr, &read_order_iodir_reg, &read_iodir_reg);
+ 	if (i2c_ret != 0) {
++		rmw_unlock();
+ 		return i2c_ret;
+ 	}
+ 
+@@ -234,9 +270,11 @@
+ 	if (iodir != new_iodir) {
+ 		i2c_ret = write_reg(i2c, addr, IODIR_REGISTER, new_iodir);
+ 		if (i2c_ret != 0) {
++			rmw_unlock();
+ 			return i2c_ret;
+ 		}
+ 	}
++	rmw_unlock();
+ 
+ 	errno = 0;
+ 	return 0;
+@@ -290,7 +328,13 @@
+ 	uint8_t gpio;
+ 	i2c_read_t read_gpio_reg = {.buff=&gpio, .len=1};
+ 
++	rmw_lock();
+ 	int i2c_ret = i2c_write_then_read(i2c, addr, &read_order_gpio_reg, &read_gpio_reg);
++	if (i2c_ret != 0) {
++		// Sin la lectura no se sabe el estado de los otros 7 pines: no escribir.
++		rmw_unlock();
++		return i2c_ret;
++	}
+ 
+ 	uint8_t new_gpio;
+ 	if (value) {
+@@ -303,9 +347,11 @@
+ 	if (new_gpio != gpio) {
+ 		i2c_ret = write_reg(i2c, addr, GPIO_REGISTER, new_gpio);
+ 		if (i2c_ret != 0) {
++			rmw_unlock();
+ 			return i2c_ret;
+ 		}
+ 	}
++	rmw_unlock();
+ 
+ 	errno = 0;
+ 	return 0;
